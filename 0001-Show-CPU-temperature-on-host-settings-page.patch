@@ -1,0 +1,61 @@
+From 7794baab187fa446ee4442eeb8c21c7f0e9af90c Mon Sep 17 00:00:00 2001
+From: Timothy Legge <timlegge@gmail.com>
+Date: Mon, 15 Aug 2016 22:47:37 -0300
+Subject: [PATCH 1/2] Show CPU temperature on host settings page
+
+---
+ ad2web/settings/views.py            | 10 +++++++++-
+ ad2web/templates/settings/host.html |  2 ++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/ad2web/settings/views.py b/ad2web/settings/views.py
+index e827b60..8dd945e 100644
+--- a/ad2web/settings/views.py
++++ b/ad2web/settings/views.py
+@@ -136,6 +136,7 @@ def host():
+         return redirect(url_for('settings.index'))
+ 
+     uptime = _get_system_uptime()
++    cpu_temp = _get_cpu_temperature()
+ 
+     #if missing netifaces dependency, we do not allow to view host settings
+     if hasnetifaces == 1:
+@@ -148,7 +149,7 @@ def host():
+         if form.validate_on_submit():
+             return redirect(url_for('settings.configure_ethernet_device', device=form.ethernet_devices.data))
+ 
+-        return render_template('settings/host.html', hostname=hostname, uptime=uptime, form=form, active="host settings")
++        return render_template('settings/host.html', hostname=hostname, uptime=uptime, cpu_temp=cpu_temp, form=form, active="host settings")
+     else:
+         flash('Please install the netifaces module (sudo pip install netifaces) to view host settings information.', 'error')
+         return redirect(url_for('settings.index'))
+@@ -444,6 +445,13 @@ def _get_system_uptime():
+     
+     uptime_string = uptime_string[:-4]
+     return uptime_string
++
++#cpu temperature
++def _get_cpu_temperature():
++    with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
++        cpu_temperature = float(f.readline())
++	cpu_temperature_string = str(cpu_temperature / 1000)
++    return cpu_temperature_string
+     
+ @settings.route('/export', methods=['GET', 'POST'])
+ @login_required
+diff --git a/ad2web/templates/settings/host.html b/ad2web/templates/settings/host.html
+index 8c3fd70..0fc483e 100644
+--- a/ad2web/templates/settings/host.html
++++ b/ad2web/templates/settings/host.html
+@@ -18,6 +18,8 @@
+     <br/>
+     <div id="system_info">
+         <p>
++            <b>CPU Temperature: </b>{{cpu_temp}} <b>C</b><br/> 
++            <br />
+             <b>System Uptime: </b>{{uptime}}<br/> 
+             <a href="{{url_for('settings.system_reboot')}}" class="btn btn-primary">Reboot</a>
+             <a href="{{url_for('settings.system_shutdown')}}" class="btn btn-primary">Shutdown</a>
+-- 
+2.1.4
+
